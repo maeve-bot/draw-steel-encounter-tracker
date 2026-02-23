@@ -122,21 +122,23 @@ export const EncounterPage: React.FC<EncounterPageProps> = ({ id }) => {
       <div className="overview-panel">
         {/* Left: Heroes, Victories, Malice */}
         <div className="overview-left">
-          <div className="overview-field">
-            <label>Heroes</label>
-            <input
-              type="number"
-              value={encounter.numberOfHeroes}
-              onChange={(e) => handleEncounterUpdate({ ...encounter, numberOfHeroes: parseInt(e.target.value) || 0 })}
-            />
-          </div>
-          <div className="overview-field">
-            <label>Victories</label>
-            <input
-              type="number"
-              value={encounter.heroesVictories}
-              onChange={(e) => handleEncounterUpdate({ ...encounter, heroesVictories: parseInt(e.target.value) || 0 })}
-            />
+          <div className="overview-left-top">
+            <div className="overview-field">
+              <label>Heroes</label>
+              <input
+                type="number"
+                value={encounter.numberOfHeroes}
+                onChange={(e) => handleEncounterUpdate({ ...encounter, numberOfHeroes: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="overview-field">
+              <label>Victories</label>
+              <input
+                type="number"
+                value={encounter.heroesVictories}
+                onChange={(e) => handleEncounterUpdate({ ...encounter, heroesVictories: parseInt(e.target.value) || 0 })}
+              />
+            </div>
           </div>
           <div className="overview-field malice-field">
             <label>Malice</label>

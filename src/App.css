@@ -114,11 +114,19 @@ body {
   gap: 1.5rem;
 }
 
-/* Left side: Heroes, Victories, Malice (stacked) */
+/* Left side: Heroes, Victories, Malice */
 .overview-left {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
+  padding-right: 1rem;
+  border-right: 1px solid #333;
+}
+
+.overview-left-top {
+  display: flex;
+  gap: 1rem;
   align-items: center;
 }
 
