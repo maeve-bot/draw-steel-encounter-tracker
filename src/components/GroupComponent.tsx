@@ -197,14 +197,18 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpda
                 </div>
               )}
 
-              {/* Notes - always visible */}
+              {/* Notes - always visible and editable */}
               <input
                 type="text"
                 className="notes-input"
                 value={creature.notes}
-                onChange={(e) => handleTextChange(index, 'notes', e.target.value)}
+                onChange={(e) => {
+                  // Always allow editing notes - use group.creatures for direct update
+                  const newCreatures = [...group.creatures];
+                  newCreatures[index] = { ...newCreatures[index], notes: e.target.value };
+                  onUpdate({ ...group, creatures: newCreatures });
+                }}
                 placeholder="Notes..."
-                disabled={!isEditing}
               />
 
               {isEditing && (

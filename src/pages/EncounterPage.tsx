@@ -113,9 +113,10 @@ export const EncounterPage: React.FC<EncounterPageProps> = ({ id }) => {
         </div>
       </div>
 
-      {/* Encounter Overview Panel */}
+      {/* Encounter Overview Panel - split in half */}
       <div className="overview-panel">
-        <div className="overview-row">
+        {/* Left: Heroes, Victories, Malice */}
+        <div className="overview-left">
           <div className="overview-field">
             <label>Heroes</label>
             <input
@@ -143,7 +144,8 @@ export const EncounterPage: React.FC<EncounterPageProps> = ({ id }) => {
           </div>
         </div>
         
-        <div className="overview-conditions">
+        {/* Right: Success/Failure conditions stacked */}
+        <div className="overview-right">
           <div className="condition-field">
             <label>Success Condition</label>
             <textarea
