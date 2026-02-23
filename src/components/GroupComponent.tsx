@@ -92,6 +92,14 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpda
 
   const creaturesToRender = isEditing ? localCreatures : group.creatures;
 
+  // Handle stamina change without entering edit mode
+  const handleStaminaChange = (index: number, value: string) => {
+    const parsed = parseInt(value, 10);
+    const newCreatures = [...group.creatures];
+    newCreatures[index] = { ...newCreatures[index], currentStamina: isNaN(parsed) ? 0 : parsed };
+    onUpdate({ ...group, creatures: newCreatures });
+  };
+
   return (
     <div className="group-row">
       {/* Left: Group Tracker (stacked Group # + checkbox) */}
@@ -121,26 +129,25 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpda
             
             {/* Center: Stamina - big and prominent */}
             <div className="stamina-center">
+              <span className="stamina-label">STA:</span>
               <input
                 type="number"
                 className="stamina-input large"
                 value={creature.currentStamina}
-                onChange={(e) => handleNumberChange(index, 'currentStamina', e.target.value)}
-                onBlur={(e) => handleNumberBlur(index, 'currentStamina', e.target.value)}
-                disabled={!isEditing}
+                onChange={(e) => handleStaminaChange(index, e.target.value)}
+                onBlur={(e) => handleStaminaChange(index, e.target.value)}
               />
-              
               {creature.isMinion && creature.minionCount && creature.staminaPerMinion && (
-                <div className="minion-thresholds">
+                <span className="minion-thresholds-left">
                   {getMinionThresholds(creature).map((threshold, ti) => (
                     <span
                       key={ti}
                       className={`threshold ${isThresholdStrikethrough(creature, threshold) ? 'strikethrough' : ''}`}
                     >
-                      {threshold}
+                      [{threshold}]
                     </span>
                   ))}
-                </div>
+                </span>
               )}
             </div>
 
