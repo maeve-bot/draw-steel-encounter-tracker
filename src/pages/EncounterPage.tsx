@@ -178,6 +178,7 @@ export const EncounterPage: React.FC<EncounterPageProps> = ({ id }) => {
           <GroupComponent
             key={group.groupId}
             group={group}
+            groupIndex={index}
             onUpdate={(updated) => handleGroupUpdate(index, updated)}
             onDelete={() => handleGroupDelete(index)}
           />

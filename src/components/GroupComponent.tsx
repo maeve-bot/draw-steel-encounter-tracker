@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Group, Creature } from '../types';
 
 interface GroupProps {
   group: Group;
+  groupIndex: number;
   onUpdate: (group: Group) => void;
   onDelete: () => void;
 }
@@ -10,15 +11,28 @@ interface GroupProps {
 // Generate unique IDs
 const generateCreatureId = () => `c-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-export const GroupComponent: React.FC<GroupProps> = ({ group, onUpdate, onDelete }) => {
+export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpdate, onDelete }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [localCreatures, setLocalCreatures] = useState<Creature[]>(group.creatures);
+
   const handleGroupCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdate({ ...group, hasActed: e.target.checked });
   };
 
+  const handleSaveChanges = () => {
+    onUpdate({ ...group, creatures: localCreatures });
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setLocalCreatures(group.creatures);
+    setIsEditing(false);
+  };
+
   const handleCreatureUpdate = (index: number, creature: Creature) => {
-    const newCreatures = [...group.creatures];
+    const newCreatures = [...localCreatures];
     newCreatures[index] = creature;
-    onUpdate({ ...group, creatures: newCreatures });
+    setLocalCreatures(newCreatures);
   };
 
   const handleAddCreature = () => {
@@ -33,12 +47,12 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, onUpdate, onDelete
       distance: 5,
       notes: '',
     };
-    onUpdate({ ...group, creatures: [...group.creatures, newCreature] });
+    setLocalCreatures([...localCreatures, newCreature]);
   };
 
   const handleRemoveCreature = (index: number) => {
-    const newCreatures = group.creatures.filter((_, i) => i !== index);
-    onUpdate({ ...group, creatures: newCreatures });
+    const newCreatures = localCreatures.filter((_, i) => i !== index);
+    setLocalCreatures(newCreatures);
   };
 
   const getMinionThresholds = (creature: Creature): number[] => {
@@ -56,32 +70,82 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, onUpdate, onDelete
     return creature.currentStamina < threshold;
   };
 
+  // Handle number input - don't save on change, handle blank/zero properly
+  const handleNumberChange = (index: number, field: keyof Creature, value: string) => {
+    // Just update local state, don't save yet
+    // Empty string allowed during typing
+    const newCreatures = [...localCreatures];
+    newCreatures[index] = { ...newCreatures[index], [field]: value };
+    setLocalCreatures(newCreatures);
+  };
+
+  const handleNumberBlur = (index: number, _field: keyof Creature, value: string) => {
+    // On blur, parse and save - default to currentStamina field
+    const parsed = parseInt(value, 10);
+    const newCreatures = [...localCreatures];
+    newCreatures[index] = { ...newCreatures[index], currentStamina: isNaN(parsed) ? 0 : parsed };
+    setLocalCreatures(newCreatures);
+  };
+
+  // Simple text input that saves on blur
+  const handleTextChange = (index: number, field: keyof Creature, value: string) => {
+    const newCreatures = [...localCreatures];
+    newCreatures[index] = { ...newCreatures[index], [field]: value };
+    setLocalCreatures(newCreatures);
+  };
+
+  const handleTextBlur = (_index: number, _field: keyof Creature, _value: string) => {
+    // Just trigger save - value is already in local state
+  };
+
+  const creaturesToRender = isEditing ? localCreatures : group.creatures;
+
   return (
     <div className="group-container">
       <div className="group-header">
-        <label className="group-checkbox-label">
-          <input
-            type="checkbox"
-            className="group-checkbox large-checkbox"
-            checked={group.hasActed}
-            onChange={handleGroupCheckboxChange}
-          />
-          <span className="group-label-text">Group Acted</span>
-        </label>
-        <button className="delete-btn" onClick={onDelete} title="Delete group">
-          ×
-        </button>
+        <div className="group-label-section">
+          <span className="group-number">Group {groupIndex + 1}</span>
+          <label className="group-checkbox-label">
+            <input
+              type="checkbox"
+              className="group-checkbox large-checkbox"
+              checked={group.hasActed}
+              onChange={handleGroupCheckboxChange}
+            />
+          </label>
+        </div>
+        <div className="group-actions">
+          {isEditing ? (
+            <>
+              <button className="save-btn" onClick={handleSaveChanges} title="Save">
+                ✓
+              </button>
+              <button className="cancel-btn" onClick={handleCancelEdit} title="Cancel">
+                ✕
+              </button>
+            </>
+          ) : (
+            <button className="edit-btn" onClick={() => setIsEditing(true)} title="Edit group">
+              ✎
+            </button>
+          )}
+          <button className="delete-btn" onClick={onDelete} title="Delete group">
+            ×
+          </button>
+        </div>
       </div>
 
       <div className="creatures-stack">
-        {group.creatures.map((creature, index) => (
+        {creaturesToRender.map((creature, index) => (
           <div key={creature.creatureId} className="creature-line">
             <input
               type="text"
               className="creature-name"
               value={creature.name}
-              onChange={(e) => handleCreatureUpdate(index, { ...creature, name: e.target.value })}
+              onChange={(e) => handleTextChange(index, 'name', e.target.value)}
+              onBlur={() => handleTextBlur(index, 'name', creature.name)}
               placeholder="Creature name"
+              disabled={!isEditing}
             />
             
             <div className="stamina-section">
@@ -90,7 +154,9 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, onUpdate, onDelete
                 type="number"
                 className="stamina-input"
                 value={creature.currentStamina}
-                onChange={(e) => handleCreatureUpdate(index, { ...creature, currentStamina: parseInt(e.target.value) || 0 })}
+                onChange={(e) => handleNumberChange(index, 'currentStamina', e.target.value)}
+                onBlur={(e) => handleNumberBlur(index, 'currentStamina', e.target.value)}
+                disabled={!isEditing}
               />
               
               {creature.isMinion && creature.minionCount && creature.staminaPerMinion && (
@@ -107,105 +173,76 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, onUpdate, onDelete
               )}
             </div>
 
-            <label className="minion-toggle">
-              <input
-                type="checkbox"
-                checked={creature.isMinion}
-                onChange={(e) => {
-                  const updated = { ...creature, isMinion: e.target.checked };
-                  if (e.target.checked) {
-                    updated.minionCount = 4;
-                    updated.staminaPerMinion = 5;
-                  } else {
-                    updated.minionCount = undefined;
-                    updated.staminaPerMinion = undefined;
-                  }
-                  handleCreatureUpdate(index, updated);
-                }}
-              />
-              Minion
-            </label>
+            {isEditing && (
+              <>
+                <label className="minion-toggle">
+                  <input
+                    type="checkbox"
+                    checked={creature.isMinion}
+                    onChange={(e) => {
+                      const updated = { ...creature, isMinion: e.target.checked };
+                      if (e.target.checked) {
+                        updated.minionCount = 4;
+                        updated.staminaPerMinion = 5;
+                      } else {
+                        updated.minionCount = undefined;
+                        updated.staminaPerMinion = undefined;
+                      }
+                      handleCreatureUpdate(index, updated);
+                    }}
+                  />
+                  Minion
+                </label>
 
-            {creature.isMinion && (
-              <div className="minion-config">
+                {creature.isMinion && (
+                  <div className="minion-config">
+                    <input
+                      type="number"
+                      className="minion-count-input"
+                      value={creature.minionCount || ''}
+                      onChange={(e) => handleNumberChange(index, 'minionCount', e.target.value)}
+                      onBlur={(e) => handleNumberBlur(index, 'minionCount', e.target.value)}
+                      placeholder="#"
+                      title="Minion count"
+                    />
+                    <span className="minion-x">×</span>
+                    <input
+                      type="number"
+                      className="stamina-per-input"
+                      value={creature.staminaPerMinion || ''}
+                      onChange={(e) => handleNumberChange(index, 'staminaPerMinion', e.target.value)}
+                      onBlur={(e) => handleNumberBlur(index, 'staminaPerMinion', e.target.value)}
+                      title="Stamina per minion"
+                    />
+                  </div>
+                )}
+
                 <input
-                  type="number"
-                  className="minion-count-input"
-                  value={creature.minionCount || 0}
-                  onChange={(e) => handleCreatureUpdate(index, { ...creature, minionCount: parseInt(e.target.value) || 0 })}
-                  title="Minion count"
+                  type="text"
+                  className="notes-input"
+                  value={creature.notes}
+                  onChange={(e) => handleTextChange(index, 'notes', e.target.value)}
+                  onBlur={() => handleTextBlur(index, 'notes', creature.notes)}
+                  placeholder="Notes..."
                 />
-                <span className="minion-x">×</span>
-                <input
-                  type="number"
-                  className="stamina-per-input"
-                  value={creature.staminaPerMinion || 0}
-                  onChange={(e) => handleCreatureUpdate(index, { ...creature, staminaPerMinion: parseInt(e.target.value) || 0 })}
-                  title="Stamina per minion"
-                />
-              </div>
+
+                <button
+                  className="remove-creature-btn"
+                  onClick={() => handleRemoveCreature(index)}
+                  title="Remove creature"
+                >
+                  ×
+                </button>
+              </>
             )}
-
-            <div className="quick-stats">
-              <div className="stat">
-                <label className="stat-label">SPD</label>
-                <input
-                  type="number"
-                  className="stat-input"
-                  value={creature.speed}
-                  onChange={(e) => handleCreatureUpdate(index, { ...creature, speed: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="stat">
-                <label className="stat-label">STB</label>
-                <input
-                  type="number"
-                  className="stat-input"
-                  value={creature.stability}
-                  onChange={(e) => handleCreatureUpdate(index, { ...creature, stability: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="stat">
-                <label className="stat-label">FS</label>
-                <input
-                  type="number"
-                  className="stat-input"
-                  value={creature.freeStrike}
-                  onChange={(e) => handleCreatureUpdate(index, { ...creature, freeStrike: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="stat">
-                <label className="stat-label">DST</label>
-                <input
-                  type="number"
-                  className="stat-input"
-                  value={creature.distance}
-                  onChange={(e) => handleCreatureUpdate(index, { ...creature, distance: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-            </div>
-
-            <input
-              type="text"
-              className="notes-input"
-              value={creature.notes}
-              onChange={(e) => handleCreatureUpdate(index, { ...creature, notes: e.target.value })}
-              placeholder="Notes..."
-            />
-
-            <button
-              className="remove-creature-btn"
-              onClick={() => handleRemoveCreature(index)}
-              title="Remove creature"
-            >
-              ×
-            </button>
           </div>
         ))}
         
-        <button className="add-creature-btn" onClick={handleAddCreature}>
-          + Add Creature
-        </button>
+        {isEditing && (
+          <button className="add-creature-btn" onClick={handleAddCreature}>
+            + Add Creature
+          </button>
+        )}
       </div>
     </div>
   );
