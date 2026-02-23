@@ -4,7 +4,7 @@ import type { Group, Creature } from '../types';
 interface GroupProps {
   group: Group;
   groupIndex: number;
-  onUpdate: (group: Group) => void;
+  onUpdate: (group: Group, quiet?: boolean) => void;
   onDelete: () => void;
 }
 
@@ -12,7 +12,7 @@ interface GroupProps {
 const generateCreatureId = () => `c-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpdate, onDelete }) => {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(group.isEditing || false);
   const [localCreatures, setLocalCreatures] = useState<Creature[]>(group.creatures);
 
   const handleGroupCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,12 +92,36 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpda
 
   const creaturesToRender = isEditing ? localCreatures : group.creatures;
 
-  // Handle stamina change without entering edit mode
+  // Local state for stamina during typing (to fix 0 -> 01 issue)
+  const [localStamina, setLocalStamina] = useState<Record<string, string>>({});
+
+  // Handle stamina change - use local state until blur
   const handleStaminaChange = (index: number, value: string) => {
+    // Store in local state - don't save yet
+    setLocalStamina(prev => ({ ...prev, [index]: value }));
+  };
+
+  const handleStaminaBlur = (index: number, value: string) => {
+    // On blur, parse and save without adding to history
     const parsed = parseInt(value, 10);
     const newCreatures = [...group.creatures];
     newCreatures[index] = { ...newCreatures[index], currentStamina: isNaN(parsed) ? 0 : parsed };
-    onUpdate({ ...group, creatures: newCreatures });
+    // Use quiet save - don't add to history for quick edits
+    onUpdate({ ...group, creatures: newCreatures }, true);
+    // Clear local state
+    setLocalStamina(prev => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  };
+
+  // Get display value - use local if typing, otherwise from group
+  const getStaminaDisplay = (index: number, actualValue: number): string => {
+    if (localStamina[index] !== undefined) {
+      return localStamina[index];
+    }
+    return actualValue.toString();
   };
 
   return (
@@ -131,11 +155,12 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpda
             <div className="stamina-center">
               <span className="stamina-label">STA:</span>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 className="stamina-input large"
-                value={creature.currentStamina}
+                value={getStaminaDisplay(index, creature.currentStamina)}
                 onChange={(e) => handleStaminaChange(index, e.target.value)}
-                onBlur={(e) => handleStaminaChange(index, e.target.value)}
+                onBlur={(e) => handleStaminaBlur(index, e.target.value)}
               />
               {creature.isMinion && creature.minionCount && creature.staminaPerMinion && (
                 <span className="minion-thresholds-left">
@@ -197,16 +222,15 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpda
                 </div>
               )}
 
-              {/* Notes - always visible and editable */}
+              {/* Notes - always visible and editable, quiet save */}
               <input
                 type="text"
                 className="notes-input"
                 value={creature.notes}
                 onChange={(e) => {
-                  // Always allow editing notes - use group.creatures for direct update
                   const newCreatures = [...group.creatures];
                   newCreatures[index] = { ...newCreatures[index], notes: e.target.value };
-                  onUpdate({ ...group, creatures: newCreatures });
+                  onUpdate({ ...group, creatures: newCreatures }, true); // quiet save
                 }}
                 placeholder="Notes..."
               />

@@ -12,7 +12,7 @@ interface EncounterPageProps {
 }
 
 export const EncounterPage: React.FC<EncounterPageProps> = ({ id }) => {
-  const { encounter, loading, error, save, undo, redo, canUndo, canRedo, advanceRound } = useEncounter(id);
+  const { encounter, loading, error, save, saveQuiet, undo, redo, canUndo, canRedo, advanceRound } = useEncounter(id);
 
   const handleEncounterUpdate = (updated: Encounter) => {
     save(updated);
@@ -35,6 +35,7 @@ export const EncounterPage: React.FC<EncounterPageProps> = ({ id }) => {
         distance: 5,
         notes: '',
       }],
+      isEditing: true, // Start in edit mode
     };
 
     handleEncounterUpdate({
@@ -43,11 +44,15 @@ export const EncounterPage: React.FC<EncounterPageProps> = ({ id }) => {
     });
   };
 
-  const handleGroupUpdate = (index: number, updatedGroup: Group) => {
+  const handleGroupUpdate = (index: number, updatedGroup: Group, quiet?: boolean) => {
     if (!encounter) return;
     const newGroups = [...encounter.groups];
     newGroups[index] = updatedGroup;
-    handleEncounterUpdate({ ...encounter, groups: newGroups });
+    if (quiet) {
+      saveQuiet({ ...encounter, groups: newGroups });
+    } else {
+      handleEncounterUpdate({ ...encounter, groups: newGroups });
+    }
   };
 
   const handleGroupDelete = (index: number) => {

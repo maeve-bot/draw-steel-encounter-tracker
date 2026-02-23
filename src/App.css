@@ -114,41 +114,44 @@ body {
   gap: 1.5rem;
 }
 
-/* Left side: Heroes, Victories, Malice */
+/* Left side: Heroes, Victories, Malice (stacked) */
 .overview-left {
   display: flex;
-  gap: 1rem;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.overview-field {
+.overview-left .overview-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.15rem;
 }
 
-.overview-field label {
-  font-size: 0.75rem;
+.overview-left .overview-field label {
+  font-size: 0.7rem;
   color: #888;
   text-transform: uppercase;
 }
 
-.overview-field input {
+.overview-left .overview-field input {
   background: #1a1a2e;
   border: 1px solid #444;
   color: #eee;
-  padding: 0.5rem;
+  padding: 0.4rem 0.75rem;
   border-radius: 4px;
-  font-size: 1rem;
-  width: 70px;
+  font-size: 1.1rem;
+  width: 60px;
+  text-align: center;
 }
 
-.malice-field input {
+.overview-left .malice-field input {
   width: 80px;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: bold;
   color: #f5c542;
-  text-align: center;
+  border-width: 2px;
 }
 
 /* Right side: Success/Failure conditions stacked */

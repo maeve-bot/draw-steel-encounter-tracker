@@ -16,6 +16,7 @@ export interface Group {
   groupId: string;
   hasActed: boolean;
   creatures: Creature[];
+  isEditing?: boolean; // transient state, not persisted
 }
 
 export interface Encounter {

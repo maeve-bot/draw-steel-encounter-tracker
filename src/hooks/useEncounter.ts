@@ -8,6 +8,7 @@ interface UseEncounterReturn {
   loading: boolean;
   error: string | null;
   save: (encounter: Encounter) => Promise<void>;
+  saveQuiet: (encounter: Encounter) => Promise<void>; // doesn't add to history
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -110,10 +111,11 @@ export const useEncounter = (id: string): UseEncounterReturn => {
   const save = useCallback(async (encounterToSave: Encounter) => {
     if (!encounter) return;
     
+    // Save to history and update
     pushToHistory(encounter);
     setEncounter(encounterToSave);
     
-    // Debounced save
+    // Debounced save to storage
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -121,6 +123,22 @@ export const useEncounter = (id: string): UseEncounterReturn => {
       getStorage().save(encounterToSave);
     }, 500);
   }, [encounter, pushToHistory]);
+
+  // Save without adding to history (for quick edits like stamina)
+  const saveQuiet = useCallback(async (encounterToSave: Encounter) => {
+    if (!encounter) return;
+    
+    // Don't push to history - just update and save
+    setEncounter(encounterToSave);
+    
+    // Debounced save to storage
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = window.setTimeout(() => {
+      getStorage().save(encounterToSave);
+    }, 500);
+  }, [encounter]);
 
   const advanceRound = useCallback(async () => {
     if (!encounter) return;
@@ -154,6 +172,7 @@ export const useEncounter = (id: string): UseEncounterReturn => {
     loading,
     error,
     save,
+    saveQuiet,
     undo: handleUndo,
     redo: handleRedo,
     canUndo: pastStates.length > 0,
