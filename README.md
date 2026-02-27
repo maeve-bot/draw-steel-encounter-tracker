@@ -1,18 +1,24 @@
 # Draw Steel Encounter Tracker
 
-A low-friction digital encounter tracker for the [Draw Steel](https://drawsteel.rpg/) tabletop RPG. Built with React, TypeScript, and Vite.
-
-![Draw Steel Encounter Tracker](https://img.shields.io/badge/Draw%20Steel-Encounter%20Tracker-orange)
+A low-friction digital encounter tracker for the Draw Steel TTRPG.
 
 ## Features
 
-- **Fast & Reactive** - Instant UI updates as you type
-- **Low-Friction Design** - Clean digital translation of the paper character sheet
-- **Undo/Redo** - Ctrl+Z / Ctrl+Y for instant undo/redo (in-memory)
-- **Auto-Save** - Debounced saves (500ms) to local storage
-- **Swappable Storage** - Uses a storage interface that can be swapped for Firebase, Supabase, etc.
-- **Round Tracking** - Advance round automatically unchecks all creatures
-- **Minion Groups** - Auto-strikethrough thresholds as stamina drops
+- **Group & Creature Management** - Add creature groups with stats (stamina, speed, stability, free strike, distance)
+- **Minion Tracking** - Auto-strikethrough logic for minions when stamina drops below thresholds
+- **Undo/Redo** - Full history support with Ctrl+Z / Ctrl+Y
+- **Round Advancement** - Resets group "has acted" checkboxes
+- **Player View** - Separate `/p/:id` route that's view-only (hides malice, stamina, success/failure, notes, stats)
+- **Show/Hide Toggle** - Director can hide groups from player view
+- **Hero Turn Tracker** - Track which heroes have acted this round (resets on new round)
+- **Agent API** - Full schema documentation at `/agent.md` for AI agents
+
+## Tech Stack
+
+- React + TypeScript
+- Vite (build tool)
+- localStorage (persistence)
+- React Router (routing)
 
 ## Getting Started
 
@@ -27,46 +33,71 @@ npm run dev
 npm run build
 ```
 
-Then open http://localhost:5173 in your browser.
+## Routes
 
-## Usage
+| Route | Description |
+|-------|-------------|
+| `/` | Home - create new encounter |
+| `/e/:id` | Director view - full editing capabilities |
+| `/p/:id` | Player view - read-only, hidden info |
+| `/agent.md` | API schema and validation script |
 
-1. Click **"+ New Encounter"** to create a new encounter
-2. Share the URL with players (format: `/e/:id`)
-3. Add **Groups** of creatures using the "+ Add Group" button
-4. Add **Creatures** to each group with their stats
-5. Check the box when a group has acted
-6. Click **"Advance Round"** to increment the round and uncheck all groups
-
-### Keyboard Shortcuts
-
-- `Ctrl+Z` - Undo
-- `Ctrl+Y` or `Ctrl+Shift+Z` - Redo
-
-## Storage
-
-Currently uses browser `localStorage`. To swap to a different backend:
-
-1. Implement the `EncounterStorage` interface in `src/storage/`
-2. Update `src/storage/index.ts` to export your new storage class
+## Data Schema
 
 ```typescript
-export interface EncounterStorage {
-  get(id: string): Promise<Encounter | undefined>;
-  save(encounter: Encounter): Promise<void>;
-  delete(id: string): Promise<void>;
-  create(id: string): Promise<Encounter>;
+interface Encounter {
+  id: string;           // 12-char alphanumeric
+  encounterName: string;
+  currentRound: number;
+  totalMalice: number;
+  numberOfHeroes: number;
+  heroesVictories: number;
+  successCondition: string;
+  failureCondition: string;
+  groups: Group[];
+  heroes: Hero[];
+}
+
+interface Group {
+  groupId: string;
+  hasActed: boolean;
+  creatures: Creature[];
+  hidden?: boolean;     // hidden from player view
+}
+
+interface Creature {
+  creatureId: string;
+  name: string;
+  currentStamina: number;
+  isMinion: boolean;
+  minionCount?: number;
+  staminaPerMinion?: number;
+  speed: number;
+  stability: number;
+  freeStrike: number;
+  distance: number;
+  notes: string;
+}
+
+interface Hero {
+  id: string;
+  name: string;
+  hasActedThisRound: boolean;
 }
 ```
 
-## Tech Stack
+## Key Files
 
-- React 19
-- TypeScript
-- Vite
-- React Router
-- localStorage (swappable)
+- `src/App.tsx` - Main app with routing
+- `src/pages/EncounterPage.tsx` - Encounter editor page
+- `src/components/GroupComponent.tsx` - Group/creature UI
+- `src/types.ts` - TypeScript interfaces
+- `src/hooks/useEncounter.ts` - State management with undo/redo
+- `src/storage.ts` - Storage interface (localStorage implementation)
 
-## License
+## Notes
 
-MIT
+- Data persists in browser localStorage with key prefix `draw-steel-encounter-`
+- 12-character URL-friendly IDs generated on encounter creation
+- Player view dynamically updates as director makes changes
+- Hidden groups are greyed in director view and completely hidden in player view
