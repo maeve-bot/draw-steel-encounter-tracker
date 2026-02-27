@@ -1,3 +1,9 @@
+export interface Hero {
+  id: string;
+  name: string;
+  hasActedThisRound: boolean;
+}
+
 export interface Creature {
   creatureId: string;
   name: string;
@@ -17,6 +23,7 @@ export interface Group {
   hasActed: boolean;
   creatures: Creature[];
   isEditing?: boolean; // transient state, not persisted
+  hidden?: boolean; // hidden from player view, greyed for director
 }
 
 export interface Encounter {
@@ -29,6 +36,7 @@ export interface Encounter {
   successCondition: string;
   failureCondition: string;
   groups: Group[];
+  heroes: Hero[];
 }
 
 export const createEmptyEncounter = (id: string): Encounter => ({
@@ -41,4 +49,10 @@ export const createEmptyEncounter = (id: string): Encounter => ({
   successCondition: '',
   failureCondition: '',
   groups: [],
+  heroes: [
+    { id: 'h1', name: 'Hero 1', hasActedThisRound: false },
+    { id: 'h2', name: 'Hero 2', hasActedThisRound: false },
+    { id: 'h3', name: 'Hero 3', hasActedThisRound: false },
+    { id: 'h4', name: 'Hero 4', hasActedThisRound: false },
+  ],
 });

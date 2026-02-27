@@ -6,12 +6,14 @@ interface GroupProps {
   groupIndex: number;
   onUpdate: (group: Group, quiet?: boolean) => void;
   onDelete: () => void;
+  onToggleHidden?: () => void;
+  isPlayerView?: boolean;
 }
 
 // Generate unique IDs
 const generateCreatureId = () => `c-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpdate, onDelete }) => {
+export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpdate, onDelete, onToggleHidden, isPlayerView = false }) => {
   const [isEditing, setIsEditing] = useState(group.isEditing || false);
   const [localCreatures, setLocalCreatures] = useState<Creature[]>(group.creatures);
 
@@ -125,7 +127,7 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpda
   };
 
   return (
-    <div className="group-row">
+    <div className={`group-row ${group.hidden ? 'hidden' : ''}`}>
       {/* Left: Group Tracker (stacked Group # + checkbox) */}
       <div className="group-tracker">
         <span className="group-number">G{groupIndex + 1}</span>
@@ -257,6 +259,15 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpda
 
       {/* Far right: Edit/Delete buttons */}
       <div className="group-actions">
+        {!isPlayerView && onToggleHidden && (
+          <button 
+            className={`hide-toggle-btn ${group.hidden ? 'hidden' : ''}`}
+            onClick={onToggleHidden}
+            title={group.hidden ? "Show in player view" : "Hide from player view"}
+          >
+            {group.hidden ? '👁' : '👁'}
+          </button>
+        )}
         {isEditing ? (
           <>
             <button className="save-btn" onClick={handleSaveChanges} title="Save">
@@ -267,13 +278,17 @@ export const GroupComponent: React.FC<GroupProps> = ({ group, groupIndex, onUpda
             </button>
           </>
         ) : (
-          <button className="edit-btn" onClick={() => setIsEditing(true)} title="Edit group">
-            ✎
+          !isPlayerView && (
+            <button className="edit-btn" onClick={() => setIsEditing(true)} title="Edit group">
+              ✎
+            </button>
+          )
+        )}
+        {!isPlayerView && (
+          <button className="delete-btn" onClick={onDelete} title="Delete group">
+            ×
           </button>
         )}
-        <button className="delete-btn" onClick={onDelete} title="Delete group">
-          ×
-        </button>
       </div>
     </div>
   );
