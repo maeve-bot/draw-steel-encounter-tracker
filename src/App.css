@@ -736,7 +736,7 @@ body {
 
 /* Hero Turn Tracker */
 .hero-turn-tracker {
-  display: none; /* Hidden by default, shown when needed */
+  display: flex;
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem;
