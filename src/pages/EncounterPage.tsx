@@ -14,7 +14,7 @@ interface EncounterPageProps {
 }
 
 export const EncounterPage: React.FC<EncounterPageProps> = ({ id, isPlayerView = false }) => {
-  const { encounter, loading, error, save, saveQuiet, undo, redo, canUndo, canRedo } = useEncounter(id);
+  const { encounter, loading, error, syncStatus, save, saveQuiet, undo, redo, canUndo, canRedo } = useEncounter(id);
 
   const handleEncounterUpdate = (updated: Encounter) => {
     save(updated);
@@ -141,6 +141,12 @@ export const EncounterPage: React.FC<EncounterPageProps> = ({ id, isPlayerView =
     return <div className="error">Encounter not found</div>;
   }
 
+  const syncLabel = syncStatus === 'connected'
+    ? 'Connected'
+    : syncStatus === 'offline'
+      ? 'Offline'
+      : 'Local only';
+
   return (
     <div className={`encounter-page ${isPlayerView ? 'player-view' : ''}`}>
       {/* Top Bar */}
@@ -155,6 +161,9 @@ export const EncounterPage: React.FC<EncounterPageProps> = ({ id, isPlayerView =
         />
         
         <div className="session-controls">
+          <span className={`sync-indicator sync-${syncStatus}`} title="Realtime sync status">
+            {syncLabel}
+          </span>
           {!isPlayerView && (
             <>
               <button 

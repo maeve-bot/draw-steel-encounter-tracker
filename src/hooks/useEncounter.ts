@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Encounter, Group } from '../types';
 import { createEmptyEncounter } from '../types';
 import { getStorage } from '../storage/index';
+import type { SyncStatus } from '../storage';
 
 interface UseEncounterReturn {
   encounter: Encounter | null;
   loading: boolean;
   error: string | null;
+  syncStatus: SyncStatus;
   save: (encounter: Encounter) => Promise<void>;
   saveQuiet: (encounter: Encounter) => Promise<void>; // doesn't add to history
   undo: () => void;
@@ -22,16 +24,31 @@ export const useEncounter = (id: string): UseEncounterReturn => {
   const [encounter, setEncounter] = useState<Encounter | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('local');
   const [pastStates, setPastStates] = useState<Encounter[]>([]);
   const [futureStates, setFutureStates] = useState<Encounter[]>([]);
   const saveTimeoutRef = useRef<number | null>(null);
+  const lastLocalWriteRef = useRef<string | null>(null);
 
   // Load encounter on mount
   useEffect(() => {
+    const storage = getStorage();
+    setSyncStatus(storage.getSyncStatus?.() ?? 'local');
+    const unsubscribeStatus = storage.onSyncStatusChange?.((status) => {
+      setSyncStatus(status);
+    });
+
+    return () => {
+      unsubscribeStatus?.();
+    };
+  }, []);
+
+  // Load encounter on mount
+  useEffect(() => {
+    const storage = getStorage();
     const load = async () => {
       setLoading(true);
       try {
-        const storage = getStorage();
         const data = await storage.get(id);
         if (data) {
           setEncounter(data);
@@ -51,6 +68,31 @@ export const useEncounter = (id: string): UseEncounterReturn => {
       }
     };
     load();
+    const unsubscribeRealtime = storage.subscribe?.(id, (remoteEncounter) => {
+      const remoteSerialized = JSON.stringify(remoteEncounter);
+
+      // Ignore echo updates from this same client write.
+      if (lastLocalWriteRef.current === remoteSerialized) {
+        return;
+      }
+
+      setEncounter((current) => {
+        if (!current) return remoteEncounter;
+        const currentSerialized = JSON.stringify(current);
+        if (currentSerialized === remoteSerialized) {
+          return current;
+        }
+        return remoteEncounter;
+      });
+
+      // Remote writes invalidate local undo/redo history.
+      setPastStates([]);
+      setFutureStates([]);
+    });
+
+    return () => {
+      unsubscribeRealtime?.();
+    };
   }, [id]);
 
   // Keyboard shortcuts for undo/redo
@@ -71,6 +113,8 @@ export const useEncounter = (id: string): UseEncounterReturn => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // handleUndo/handleRedo depend on the same state slices used here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pastStates, futureStates]);
 
   const pushToHistory = useCallback((currentState: Encounter) => {
@@ -93,6 +137,7 @@ export const useEncounter = (id: string): UseEncounterReturn => {
     setEncounter(previousState);
     
     // Save to database
+    lastLocalWriteRef.current = JSON.stringify(previousState);
     getStorage().save(previousState);
   }, [pastStates, encounter]);
 
@@ -105,6 +150,7 @@ export const useEncounter = (id: string): UseEncounterReturn => {
     setEncounter(nextState);
     
     // Save to database
+    lastLocalWriteRef.current = JSON.stringify(nextState);
     getStorage().save(nextState);
   }, [futureStates, encounter]);
 
@@ -120,6 +166,7 @@ export const useEncounter = (id: string): UseEncounterReturn => {
       clearTimeout(saveTimeoutRef.current);
     }
     saveTimeoutRef.current = window.setTimeout(() => {
+      lastLocalWriteRef.current = JSON.stringify(encounterToSave);
       getStorage().save(encounterToSave);
     }, 500);
   }, [encounter, pushToHistory]);
@@ -136,6 +183,7 @@ export const useEncounter = (id: string): UseEncounterReturn => {
       clearTimeout(saveTimeoutRef.current);
     }
     saveTimeoutRef.current = window.setTimeout(() => {
+      lastLocalWriteRef.current = JSON.stringify(encounterToSave);
       getStorage().save(encounterToSave);
     }, 500);
   }, [encounter]);
@@ -155,6 +203,7 @@ export const useEncounter = (id: string): UseEncounterReturn => {
     };
     
     setEncounter(updated);
+    lastLocalWriteRef.current = JSON.stringify(updated);
     await getStorage().save(updated);
   }, [encounter, pushToHistory]);
 
@@ -171,6 +220,7 @@ export const useEncounter = (id: string): UseEncounterReturn => {
     encounter,
     loading,
     error,
+    syncStatus,
     save,
     saveQuiet,
     undo: handleUndo,

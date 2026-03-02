@@ -1,2 +1,3 @@
-export { LocalStorageStorage, getStorage, setStorage } from './LocalStorage';
-export type { EncounterStorage } from '../storage';
+export { LocalStorageStorage } from './LocalStorage';
+export { getStorage, setStorage } from '../sync';
+export type { EncounterStorage, SyncStatus } from '../storage';

@@ -17,7 +17,8 @@ A low-friction digital encounter tracker for the Draw Steel TTRPG.
 
 - React + TypeScript
 - Vite (build tool)
-- localStorage (persistence)
+- Firebase Realtime Database (realtime sync, optional)
+- localStorage (offline + fallback persistence)
 - React Router (routing)
 
 ## Getting Started
@@ -31,6 +32,30 @@ npm run dev
 
 # Build for production
 npm run build
+```
+
+## Firebase Realtime Sync Setup (Optional)
+
+1. Create a Firebase project and enable **Realtime Database**.
+2. Copy `.env.example` to `.env.local`.
+3. Fill in the `VITE_FIREBASE_*` values from your Firebase web app config.
+4. Start the app. If config is present, encounter pages sync in real time across devices.
+
+If Firebase config is missing or unavailable, the app automatically runs in localStorage-only mode.
+
+### Realtime Database Structure
+
+```json
+{
+  "encounters": {
+    "{encounterId}": {
+      "lastModified": 1735689600000,
+      "data": {
+        "...": "Encounter object"
+      }
+    }
+  }
+}
 ```
 
 ## Routes
@@ -97,7 +122,8 @@ interface Hero {
 
 ## Notes
 
-- Data persists in browser localStorage with key prefix `draw-steel-encounter-`
+- Data always persists in browser localStorage with key prefix `draw-steel-encounter-`
+- Firebase sync is optional and uses Realtime Database when configured
 - 12-character URL-friendly IDs generated on encounter creation
-- Player view dynamically updates as director makes changes
+- Director and player views update in real time across devices when Firebase is connected
 - Hidden groups are greyed in director view and completely hidden in player view

@@ -81,7 +81,36 @@ body {
 
 .session-controls {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
+}
+
+.sync-indicator {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #555;
+  color: #bbb;
+  background: #222;
+}
+
+.sync-indicator.sync-connected {
+  color: #8df0a6;
+  border-color: #2f8f4c;
+  background: #1a3523;
+}
+
+.sync-indicator.sync-offline {
+  color: #ffd18b;
+  border-color: #8d5d1f;
+  background: #35270f;
+}
+
+.sync-indicator.sync-local {
+  color: #bbb;
+  border-color: #555;
+  background: #222;
 }
 
 .control-btn {
@@ -474,7 +503,6 @@ body {
   border-color: transparent;
   color: #888;
   cursor: default;
-}
 }
 
 .creature-line input:disabled:focus {

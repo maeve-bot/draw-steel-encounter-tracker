@@ -1,5 +1,7 @@
 import type { Encounter } from './types';
 
+export type SyncStatus = 'connected' | 'offline' | 'local';
+
 /**
  * Storage interface - implement this to add new storage backends
  * (Firebase, Supabase, localStorage, etc.)
@@ -25,6 +27,22 @@ export interface EncounterStorage {
    * Returns the new encounter with its ID set.
    */
   create(id: string): Promise<Encounter>;
+
+  /**
+   * Optional realtime subscription used by sync backends.
+   * Returns an unsubscribe function.
+   */
+  subscribe?(id: string, onEncounter: (encounter: Encounter) => void): () => void;
+
+  /**
+   * Optional sync status for UI indicators.
+   */
+  getSyncStatus?(): SyncStatus;
+
+  /**
+   * Optional status subscription. Returns an unsubscribe function.
+   */
+  onSyncStatusChange?(callback: (status: SyncStatus) => void): () => void;
 }
 
 // Generate a 12-character random alphanumeric ID
